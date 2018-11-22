@@ -96,22 +96,20 @@ public class LineBotController
                         replyToUser(payload.events[0].replyToken,randomText());
                     }
 
-                    if(isBos == false){
-                        if(msgText.contains("Save") || msgText.contains("save")){
-                            saveMsg(msgText,payload);
-                            replyToUser(payload.events[0].replyToken,"OK");
-                        }
-                        else if(msgText.contains("Load") || msgText.contains("load")){
-                            String res = showMsg(msgText,payload);
-                            if(res!=null){
-                                replyToUser(payload.events[0].replyToken,res);
+                    if(isBos == false) {
+                        if (msgText.contains("Save") || msgText.contains("save")) {
+                            saveMsg(msgText, payload);
+                            replyToUser(payload.events[0].replyToken, "OK");
+                        } else if (msgText.contains("Load") || msgText.contains("load")) {
+                            String res = showMsg(msgText, payload);
+                            if (res != null) {
+                                replyToUser(payload.events[0].replyToken, res);
+                            } else {
+                                replyToUser(payload.events[0].replyToken, "Value tidak ditemukan");
                             }
+                        }else{
+                            replyToUser(payload.events[0].replyToken, "Masukkan perintah!");
                         }
-                        else{
-                            replyToUser(payload.events[0].replyToken, "Value tidak ditemukan");
-                        }
-                    }else{
-
                     }
 
                     //String fromLang = "id";
@@ -129,6 +127,7 @@ public class LineBotController
                     }
                     */
                 } else {
+                    replyToUser(payload.events[0].replyToken, "Dadah!");
                     if (payload.events[0].source.type.equals("group")){
                         leaveGR(payload.events[0].source.groupId, "group");
                     } else if (payload.events[0].source.type.equals("room")){
@@ -252,7 +251,7 @@ public class LineBotController
     private void saveMsg(String perintah, Payload payload) throws URISyntaxException, SQLException {
         String[] data = perintah.split(" ");
         if(data.length<3){
-            replyToUser(payload.events[0].replyToken, "Harap masukan pesan degan format '[save] [key] [value]'");
+            replyToUser(payload.events[0].replyToken, "Error, masukkan format dengan benar.");
         }
         else{
             String id = payload.events[0].source.userId;
@@ -265,7 +264,7 @@ public class LineBotController
     public void insertData(String id, String key, String value) throws URISyntaxException, SQLException {
         String temp = getData(id, key);
         if(temp!=null || temp!= ""){
-            PreparedStatement st = getConnection().prepareStatement("UPDATE simpanan SET value = ? WHERE id_person = ? AND key = ?;");
+            PreparedStatement st = getConnection().prepareStatement("UPDATE data_simpan SET value = ? WHERE id_person = ? AND key = ?;");
             st.setString(1, value);
             st.setString(2, id);
             st.setString(3, key);
@@ -273,7 +272,7 @@ public class LineBotController
             st.close();
         }
         else{
-            PreparedStatement st = getConnection().prepareStatement("INSERT INTO simpanan (id_person,key,value)" + "\n" + " VALUES(?,?,?);");
+            PreparedStatement st = getConnection().prepareStatement("INSERT INTO data_simpan (id_person,key,value)" + "\n" + " VALUES(?,?,?);");
             st.setString(1, id);
             st.setString(2, key);
             st.setString(3, value);
@@ -283,7 +282,7 @@ public class LineBotController
     }
 
     public String getData(String id, String value) throws URISyntaxException, SQLException{
-        PreparedStatement st = getConnection().prepareStatement("select value from simpanan where id_person = ? AND key = ?;");
+        PreparedStatement st = getConnection().prepareStatement("select value from data_simpan where id_person = ? AND key = ?;");
         st.setString(1, id);
         st.setString(2, value);
         ResultSet rs= st.executeQuery();
