@@ -14,15 +14,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import retrofit2.Response;
-import java.io.BufferedReader;
-import java.io.OutputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.sql.*;
 import java.util.HashMap;
 
@@ -40,11 +35,10 @@ public class LineBotController
 
     private static final String CLIENT_ID = "FREE_TRIAL_ACCOUNT";
     private static final String CLIENT_SECRET = "PUBLIC_SECRET";
-   // private static final String ENDPOINT = "http://api.whatsmate.net/v1/translation/translate";
-    private boolean isBos = false;
-    HashMap<String, String> hm = new HashMap<String, String>();
-    @RequestMapping(value="/callback", method= RequestMethod.POST)
+    //private static final String ENDPOINT = "http://api.whatsmate.net/v1/translation/translate";
+    private boolean statusBos = false;
 
+    @RequestMapping(value="/callback", method=RequestMethod.POST)
     public ResponseEntity<String> callback(
             @RequestHeader("X-Line-Signature") String aXLineSignature,
             @RequestBody String aPayload) throws IOException, URISyntaxException, SQLException {
@@ -64,14 +58,7 @@ public class LineBotController
         String idTarget = " ";
         String eventType = payload.events[0].type;
 
-        if (eventType.equals("join")){
-            if (payload.events[0].source.type.equals("group")){
-                replyToUser(payload.events[0].replyToken, "Hello Group");
-            }
-            if (payload.events[0].source.type.equals("room")){
-                replyToUser(payload.events[0].replyToken, "Hello Room");
-            }
-        } else if (eventType.equals("message")){
+        if (eventType.equals("message")){
             if (payload.events[0].source.type.equals("group")){
                 idTarget = payload.events[0].source.groupId;
             } else if (payload.events[0].source.type.equals("room")){
@@ -87,46 +74,36 @@ public class LineBotController
                 //msgText = msgText.toLowerCase();
 
                 if (!msgText.contains("bot leave")){
-                    if (msgText.equalsIgnoreCase("noboss")){
-                        isBos = false;
+                    if(msgText.equalsIgnoreCase("no boss")){
+                        statusBos = false;
                         replyToUser(payload.events[0].replyToken, "OK");
                     }
-                    else if(msgText.equalsIgnoreCase("boss")){
-                        isBos = true;
-                        replyToUser(payload.events[0].replyToken,randomText());
+                    else if(msgText.equalsIgnoreCase("Boss")){
+                        statusBos = true;
+                        replyToUser(payload.events[0].replyToken, randomText());;
                     }
 
-                    if(isBos == false) {
-                        if (msgText.contains("Save") || msgText.contains("save")) {
+                    if(statusBos==false){
+                        if(msgText.contains("Save")||msgText.contains("save")){
                             saveMsg(msgText, payload);
-                            replyToUser(payload.events[0].replyToken, "OK");
-                        } else if (msgText.contains("Load") || msgText.contains("load")) {
-                            String res = showMsg(msgText, payload);
-                            if (res != null) {
-                                replyToUser(payload.events[0].replyToken, res);
-                            } else {
+                            replyToUser(payload.events[0].replyToken, "Ok");
+                        }
+                        else if(msgText.contains("Load")||msgText.contains("load")){
+                            String hasil = loadMsg(msgText, payload);
+                            if(hasil!= null){
+                                replyToUser(payload.events[0].replyToken, hasil);
+                            }
+                            else{
                                 replyToUser(payload.events[0].replyToken, "Value tidak ditemukan");
                             }
-                        }else{
-                            replyToUser(payload.events[0].replyToken, "Masukkan perintah!");
+                        }
+                        else{
+
+
                         }
                     }
-
-                    //String fromLang = "id";
-                    //String toLang = "en";
-                    //String tex = "Let's have some fun!";
-
-                    //translate(fromLang, toLang, msgText, payload.events[0].replyToken);
-
-                    //replyToUser(payload.events[0].replyToken, msgText);
-                    /*try {
-                        getMessageData(msgText, idTarget);
-                    } catch (IOException e) {
-                        System.out.println("Exception is raised ");
-                        e.printStackTrace();
-                    }
-                    */
-                } else {
+                }
+                else {
                     replyToUser(payload.events[0].replyToken, "Dadah!");
                     if (payload.events[0].source.type.equals("group")){
                         leaveGR(payload.events[0].source.groupId, "group");
@@ -141,52 +118,69 @@ public class LineBotController
         return new ResponseEntity<String>(HttpStatus.OK);
     }
 
-//    private void translate(String fromLang, String toLang, String text, String payload) throws IOException {
-//        // TODO: Should have used a 3rd party library to make a JSON string from an object
-//        String jsonPayload = new StringBuilder()
-//                .append("{")
-//                .append("\"fromLang\":\"")
-//                .append(fromLang)
-//                .append("\",")
-//                .append("\"toLang\":\"")
-//                .append(toLang)
-//                .append("\",")
-//                .append("\"text\":\"")
-//                .append(text)
-//                .append("\"")
-//                .append("}")
-//                .toString();
-//
-//        URL url = new URL(ENDPOINT);
-//        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-//        conn.setDoOutput(true);
-//        conn.setRequestMethod("POST");
-//        conn.setRequestProperty("X-WM-CLIENT-ID", CLIENT_ID);
-//        conn.setRequestProperty("X-WM-CLIENT-SECRET", CLIENT_SECRET);
-//        conn.setRequestProperty("Content-Type", "application/json");
-//
-//        OutputStream os = conn.getOutputStream();
-//        os.write(jsonPayload.getBytes());
-//        os.flush();
-//        os.close();
-//
-//        int statusCode = conn.getResponseCode();
-//        System.out.println("Status Code: " + statusCode);
-//        BufferedReader br = new BufferedReader(new InputStreamReader(
-//                (statusCode == 200) ? conn.getInputStream() : conn.getErrorStream()
-//        ));
-//        String output;
-//        while ((output = br.readLine()) != null) {
-//            replyToUser(payload, output);
-//            //System.out.println(output);
-//        }
-//        conn.disconnect();
-//    }
+    private String randomText() {
+        return "A short story is a piece of prose fiction that typically can be read in one sitting and focuses on a self-contained incident or series of linked incidents, with the intent of evoking a \"single effect\" or mood, however there are many exceptions to this.\n" +
+                "\n" +
+                "A dictionary definition is \"an invented prose narrative shorter than a novel usually dealing with a few characters and aiming at unity of effect and often concentrating on the creation of mood rather than plot.\"[1]\n" +
+                "\n" +
+                "The short story is a crafted form in its own right. Short stories make use of plot, resonance, and other dynamic components as in a novel, but typically to a lesser degree. While the short story is largely distinct from the novel or novella (a shorter novel), authors generally draw from a common pool of literary techniques.\n" +
+                "\n" +
+                "Short story writers may define their works as part of the artistic and personal expression of the form. They may also attempt to resist categorization by genre and fixed formation.\n" +
+                "\n" +
+                "Short stories have deep roots and the power of short fiction has been recognised in modern society for hundreds of years. The short form is, conceivably, more natural to us than longer forms. We are drawn to short stories as the well-told story, and as William Boyd, the award-winning British author and short story writer has said:";
+    }
 
-    private void getMessageData(String message, String targetID) throws IOException{
-        if (message!=null){
-            pushMessage(targetID, message);
+    private void saveMsg(String perintah, Payload payload) throws URISyntaxException, SQLException {
+        String[] data = perintah.split(" ");
+        if(data.length<3){
+            replyToUser(payload.events[0].replyToken, "Harap masukan pesan degan format '[save] [key] [value]'");
         }
+        else{
+            String id = payload.events[0].source.userId;
+            String key = data[1];
+            String value = data[2];
+            insertData(id, key, value);
+        }
+
+    }
+
+    public static void insertData(String id, String key, String value) throws URISyntaxException, SQLException {
+
+        String query = "INSERT INTO dataSimpanan (id_person,key,value) VALUES(?,?,?);";
+        PreparedStatement st = getConnection().prepareStatement(query);
+        st.setString(1, id);
+        st.setString(2, key);
+        st.setString(3, value);
+        st.executeUpdate();
+        st.close();
+        System.out.println("haha");
+    }
+
+    private String loadMsg(String perintah, Payload payload) throws URISyntaxException, SQLException {
+        String[] data = perintah.split(" ");
+        if(data.length<2){
+            replyToUser(payload.events[0].replyToken, "Error input!");
+        }
+        String id = payload.events[0].source.userId;
+        String key=data[1];
+        String val = getData(id,key);
+        return val;
+    }
+
+
+    public static String getData(String id, String value) throws URISyntaxException, SQLException {
+        PreparedStatement st = getConnection().prepareStatement("select value from dataSimpanan where id_person = ? AND key = ? order by id desc limit 1;");
+        st.setString(1, id);
+        st.setString(2, value);
+        String tmp = "";
+        ResultSet rs = st.executeQuery();
+        while (rs.next()) {
+            tmp = rs.getString(1);
+        }
+        String hasil = tmp;
+        //System.out.println(rs.getObject(1));
+        st.close();
+        return hasil;
     }
 
     private void replyToUser(String rToken, String messageToUser){
@@ -244,91 +238,18 @@ public class LineBotController
         }
     }
 
-    public String randomText(){
-        return "What is Lorem Ipsum?Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.Why do we use it?It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).";
-    }
-
-    private void saveMsg(String perintah, Payload payload) throws URISyntaxException, SQLException {
-        String[] data = perintah.split(" ");
-        if(data.length<3){
-            replyToUser(payload.events[0].replyToken, "Error, masukkan format dengan benar.");
-        }
-        else{
-            String id = payload.events[0].source.userId;
-            String key = data[1];
-            String value = data[2];
-            insertData(id, key, value);
-        }
-    }
-
-    public void insertData(String id, String key, String value) throws URISyntaxException, SQLException {
-        String temp = getData(id, key);
-        if(temp!=null || temp!= ""){
-            PreparedStatement st = getConnection().prepareStatement("UPDATE data_simpan SET value = ? WHERE id_person = ? AND key = ?;");
-            st.setString(1, value);
-            st.setString(2, id);
-            st.setString(3, key);
-            st.executeUpdate();
-            st.close();
-        }
-        else{
-            PreparedStatement st = getConnection().prepareStatement("INSERT INTO data_simpan (id_person,key,value)" + "\n" + " VALUES(?,?,?);");
-            st.setString(1, id);
-            st.setString(2, key);
-            st.setString(3, value);
-            st.executeUpdate();
-            st.close();
-        }
-    }
-
-    public String getData(String id, String value) throws URISyntaxException, SQLException{
-        PreparedStatement st = getConnection().prepareStatement("select value from data_simpan where id_person = ? AND key = ?;");
-        st.setString(1, id);
-        st.setString(2, value);
-        ResultSet rs= st.executeQuery();
-        rs.next();
-        String hasil = (String)rs.getObject(1);
-        //System.out.println(rs.getObject(1));
-        st.close();
-        return hasil;
-    }
-
-    private String showMsg(String perintah, Payload payload) throws URISyntaxException, SQLException {
-        String[] data = perintah.split(" ");
-        if(data.length<2){
-            replyToUser(payload.events[0].replyToken, "Harap masukan pesan degan format '[load] [value]'");
-        }
-        String id = payload.events[0].source.userId;
-        String key=data[1];
-        //String val = hmap.get(data[1]+id);
-        String val = getData(id,key);
-        return val;
-    }
-
     private static Connection getConnection() throws URISyntaxException, SQLException {
-        Connection connection=null;
 
+        Connection connection=null;
         try {
             connection = DriverManager.getConnection("jdbc:postgresql://ec2-54-197-249-140.compute-1.amazonaws.com:5432/dap2hgf18m4g59", "qsrokubscletbs", "a8c2f03d1c14ca1291b5e6cf38f3f8a4a551bb32cc5895f4a2c085ade07726aa");
-            System.out.println("Java JDBC PostgreSQL Example");
-            // When this class first attempts to establish a connection, it automatically loads any JDBC 4.0 drivers found within
-            // the class path. Note that your application must manually load any JDBC drivers prior to version 4.0.
-//			Class.forName("org.postgresql.Driver");
 
             System.out.println("Connected to PostgreSQL database!");
             return connection;
-        } /*catch (ClassNotFoundException e) {
-			System.out.println("PostgreSQL JDBC driver not found.");
-			e.printStackTrace();
-		}*/ catch (SQLException e) {
+        }  catch (SQLException e) {
             System.out.println("Connection failure.");
             e.printStackTrace();
         }
-        String dbUrl = "postgres://qsrokubscletbs:a8c2f03d1c14ca1291b5e6cf38f3f8a4a551bb32cc5895f4a2c085ade07726aa@ec2-54-197-249-140.compute-1.amazonaws.com:5432/dap2hgf18m4g59";
-
-        String username ="qsrokubscletbs";
-
-        String password="a8c2f03d1c14ca1291b5e6cf38f3f8a4a551bb32cc5895f4a2c085ade07726aa";
 
         return connection;
     }
